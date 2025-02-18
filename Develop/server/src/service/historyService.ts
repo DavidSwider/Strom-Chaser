@@ -1,45 +1,61 @@
+import fs from 'node:fs/promises';
+import { v4 as uuidv4 } from 'uuid';
 // TODO: Define a City class with name and id properties
 class City {
-  constructor(public id: string, public name: string) {}
+  name: string;
+  id: string;
+
+  constructor(name: string, id: string) {
+    this.name = name;
+    this.id = id;
+  }
 }
 // TODO: Complete the HistoryService class
 class HistoryService {
-  private async read(): Promise<City[]> {
-    try {
 
-      const data = await FileSystem.readFile(filePath, 'utf-8');
-      return JSON.parse(data);
-    } catch (error) {
-      if (error.code === 'ENOENT') {
-        return []; 
+  private async read() {
+    return await fs.readFile('db/searchHistory.json', {
+      flag: 'a+', encoding: 'utf-8'
+    });
+  }
+  
+  private async write(cities: City[]) {
+    return await fs.writeFile('db/searchHistory.json', JSON.stringify(cities, null, 2), 'utf-8');
+  }
+  
+  async getCities() {
+    return await this.read().then((cities) => {
+      let parsedCities: City[];
+      try {
+        parsedCities = [].concat(JSON.parse(cities));
+      } catch (error) {
+        parsedCities = [];
       }
-      throw error;
+      return parsedCities;
+    });
+  }
+  
+  async addCity(city: string) {
+    if (!city) {
+      throw new Error('City name is required');
     }
+    const newCity: City = { name: city, id: uuidv4() };
+  
+    return await this.getCities()
+      .then((cities) => {
+        if (cities.find((index) => index.name === city)) {
+          return cities;
+        }
+        return [...cities, newCity];
+      })
+      .then((updatedCities) => this.write(updatedCities))
+      .then(() => newCity);
   }
-
-  private async write(cities: City[]): Promise<void> {
-    const data = JSON.stringify(cities, null, 2);
-    await FileSystem.writeFile(filePath, data, 'utf-8');
-  }
-
-  async getCities(): Promise<City[]> {
-    return await this.read();
-  }
-
-  async addCity(name: string): Promise<void> {
-    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-    const newCity = new City(id, name);
-
-    const cities = await this.read();
-    cities.push(newCity);
-    await this.write(cities);
-  }
-
-  async removeCity(id: string): Promise<void> {
-    const cities = await this.read();
-    const updatedCities = cities.filter((city) => city.id !== id);
-
-    await this.write (updatedCities);
+  
+  async removeCity(id: string) {
+    return await this.getCities()
+      .then((cities) => cities.filter((city) => city.id !== id))
+      .then((filteredCities) => this.write(filteredCities));
   }
 }
 
