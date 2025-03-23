@@ -21,8 +21,8 @@ Storm Chaser is a realtime weather App that shows an extendted 5 day forcast.
 - Express
 - Weather API
 
-  ## Deployed Site
-  https://strom-chaser.onrender.com
+## Deployed Site
+https://strom-chaser.onrender.com
 
 ## License
 
